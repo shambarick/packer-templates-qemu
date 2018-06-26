@@ -1,0 +1,84 @@
+{
+    "variables": {
+      "name": "ubuntu-16.04.4",
+      "template": "ubuntu-16.04.4-amd64",
+      "iso_name": "ubuntu-16.04.4-server-amd64.iso",
+      "preseed_path": "preseed_xenial.cfg",
+      "mirror_iso": "../iso",
+      "user": "packer",
+      "password": "packer",
+      "disk_size": "10000",
+      "domain": ""
+    },
+    "builders":
+      [
+        {
+          "name": "xenial",
+          "vm_name": "{{user `template`}}",
+          "ssh_wait_timeout": "15m",
+          "type": "qemu",
+          "format": "qcow2",
+          "accelerator": "kvm",
+          "net_device": "virtio-net",
+          "disk_cache": "none",
+          "disk_interface": "virtio-scsi",
+          "headless": "false",
+          "disk_size": "{{ user `disk_size`}}",
+          "qemuargs": [[ "-m", "1024" ],[ "-smp", "1" ]],
+          "iso_url": "{{user `mirror_iso`}}/{{user `iso_name`}}",
+          "iso_checksum": "6a7f31eb125a0b2908cf2333d7777c82",
+          "iso_checksum_type": "md5",
+          "output_directory": "../builds/packer-{{user `template`}}-qemu",
+  
+          "http_directory": "http",
+  
+          "ssh_username": "{{user `user`}}",
+          "ssh_password": "{{user `password`}}",
+          "shutdown_command": "echo '{{user `password`}}'|sudo -S shutdown -h now",
+  
+          "boot_wait": "5s",
+          "boot_command": [
+            "<enter><wait><f6><esc><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+            "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+            "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+            "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+            "/install/vmlinuz<wait>",
+            " auto<wait>",
+            " console-setup/ask_detect=false<wait>",
+            " debconf/frontend=noninteractive<wait>",
+            " debian-installer=en_US<wait>",
+            " fb=false<wait>",
+            " initrd=/install/initrd.gz<wait>",
+            " kbd-chooser/method=us<wait>",
+            " keyboard-configuration/layoutcode=fr<wait>",
+            " locale=en_US<wait>",
+            " netcfg/get_domain=vm<wait>",
+            " netcfg/get_hostname=vagrant<wait>",
+            " passwd/user-fullname={{user `user`}} <wait>",
+            " passwd/user-password={{user `password`}} <wait>",
+            " passwd/user-password-again={{user `password`}} <wait>",
+            " passwd/username={{user `user`}} <wait>",
+            " grub-installer/bootdev=/dev/sda<wait>",
+            " noapic<wait>",
+            " preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/{{user `preseed_path`}}",
+            " -- <wait>",
+            "<enter><wait>"
+          ]
+        }
+      ],
+      "provisioners": [
+        {
+          "type": "shell",
+          "execute_command": "echo '{{user `password`}}' | {{.Vars}} sudo -E -S bash '{{.Path}}'",
+          "scripts": [
+            "scripts/packages.sh",
+            "scripts/update.sh",
+            "../_common/scripts/sshd.sh",
+            "scripts/networking.sh",
+            "scripts/sudoers.sh",
+            "scripts/cleanup.sh",
+            "../_common/scripts/minimize.sh"
+          ]
+        }
+      ]
+    }
